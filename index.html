@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Path to 5K</title>
+<style>
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+/* layout: a left sidebar of plain links and one content column; browser-default look, single light theme by request */
+:root{
+  --bg:#ffffff; --fg:#000000; --link:#0000ee; --vlink:#551a8b; --rule:#808080; --note:#444444;
+  --font:"Times New Roman",Times,serif; --mono:"Courier New",Courier,monospace;
+}
+html{background:var(--bg)}
+body{
+  background:var(--bg); color:var(--fg); font:16px/1.35 var(--font);
+  padding-block:12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+a{color:var(--link)} a:visited{color:var(--vlink)}
+a:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+#wrap{display:flex;gap:16px;align-items:flex-start}
+#nav{flex:0 0 7.5em;border-right:1px solid var(--rule);padding-right:12px}
+#nav b{display:block;margin-bottom:8px}
+#nav a{display:block;margin-bottom:4px}
+#nav a.on{color:var(--fg);font-weight:bold;text-decoration:none}
+#status{margin-top:14px;font-size:13px;color:var(--note)}
+#main{flex:1 1 auto;min-width:0;max-width:40em}
+h1{font-size:24px;margin:0 0 4px} h2{font-size:19px;margin:18px 0 6px} h3{font-size:16px;margin:16px 0 2px}
+p{margin:6px 0} hr{border:0;border-top:1px solid var(--rule);margin:12px 0}
+small,.note{font-size:13px;color:var(--note);font-weight:normal}
+.big{font-size:20px}
+.scroll{overflow-x:auto}
+table.b{border:2px outset var(--rule);border-spacing:2px;font-variant-numeric:tabular-nums}
+table.b td,table.b th{border:1px inset var(--rule);padding:2px 5px;text-align:left;vertical-align:top}
+input[type=number],input[type=text]{font:16px var(--mono);width:4.2em;color:var(--fg);background:var(--bg);border:2px inset var(--rule);padding:2px}
+input[type=checkbox]{width:1.2em;height:1.2em;vertical-align:middle}
+button{font:16px var(--font);color:var(--fg)}
+textarea{font:13px var(--mono);width:100%;height:12em;box-sizing:border-box;color:var(--fg);background:var(--bg)}
+svg text{font:11px var(--mono);fill:var(--fg)}
+svg{max-width:100%;height:auto;display:block}
+.err{font-weight:bold}
+@media (max-width:560px){
+  #wrap{flex-direction:column;gap:8px}
+  #nav{flex:none;border-right:0;border-bottom:1px solid var(--rule);padding:0 0 8px;width:100%}
+  #nav b{display:inline;margin-right:8px}
+  #nav a{display:inline;margin-right:10px}
+  #status{margin-top:6px}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="nav">
+    <b>Path to 5K</b>
+    <a href="#today" data-tab="today">Today</a>
+    <a href="#schedule" data-tab="schedule">Schedule</a>
+    <a href="#charts" data-tab="charts">Charts</a>
+    <a href="#log" data-tab="log">Log</a>
+    <a href="#data" data-tab="data">Data</a>
+    <div id="status"></div>
+  </div>
+  <div id="main"></div>
+</div>
+
+<script>
+var RUNS=[
+ ["4 x 6 min, walk 2 min between","5 x 5 min, walk 90 sec between","3 x 8 min, walk 2 min between"],
+ ["3 x 9 min, walk 2 min between","4 x 6 min, walk 90 sec between","10, 8, 8 min, walk 2 min between"],
+ ["3 x 10 min, walk 2 min between","5 x 5 min, walk 1 min between","12, 10, 6 min, walk 2 min between"],
+ ["2 x 12 min, walk 2 min between","4 x 6 min, walk 1 min between","15 min non-stop, walk 2 min, then 8 min"],
+ ["2 x 14 min, walk 2 min between","3 x 8 min, walk 1 min between","20 min non-stop, walk 2 min, then 5 min"],
+ ["2 x 15 min, walk 90 sec between","20 min non-stop","25 min non-stop"],
+ ["18 min, walk 2 min, then 12 min","22 min non-stop","30 min non-stop"],
+ ["25 min non-stop","15 min non-stop, very easy","5K non-stop (about 33-38 min)"]
+];
+var RUNNAME={R1:"Run 1 (long intervals)",R2:"Run 2 (short and easy)",R3:"Run 3 (key run)"};
+var EX={
+ A:[{n:"Bench press",sets:3,lo:5,hi:5},{n:"Leg press",sets:3,lo:8,hi:12,leg:1},{n:"Seated cable row",sets:3,lo:8,hi:12},
+    {n:"Hip thrust",sets:3,lo:8,hi:12,leg:1},{n:"Lateral raise",sets:2,lo:12,hi:15},{n:"Plank",sets:3,lo:30,hi:45,time:1,bw:1}],
+ B:[{n:"Dumbbell overhead press",sets:3,lo:8,hi:10},{n:"Leg extension",sets:3,lo:10,hi:15,leg:1},{n:"Lat pulldown",sets:3,lo:8,hi:12},
+    {n:"Incline dumbbell press",sets:3,lo:8,hi:12},{n:"Cable pull-through",sets:3,lo:10,hi:15,leg:1},{n:"Decline sit-up",sets:3,lo:10,hi:15,bw:1}],
+ C:[{n:"Incline barbell press",sets:3,lo:6,hi:10},{n:"One-arm dumbbell row",sets:3,lo:8,hi:12,side:1},{n:"Face pull",sets:3,lo:12,hi:15},
+    {n:"Hanging knee raise or cable crunch",sets:3,lo:10,hi:15,bw:1}]
+};
+var SLOTS=["R1","A","R2","B","R3","C"];
+var TOTAL=48;
+
+var state={v:1,pos:0,done:[],draft:{pos:0,v:{}}};
+var storeOk=true,justDone=null,flash="",csvShown=false,bakShown=false,eraseArmed=false;
+
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function today(){var d=new Date();function p(n){return(n<10?"0":"")+n}return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())}
+function fmtPace(s){s=Math.round(s);var m=Math.floor(s/60),r=s%60;return m+":"+(r<10?"0":"")+r}
+function parsePace(t){t=String(t).trim();if(!t)return null;var m=/^(\d{1,2}):(\d{1,2})$/.exec(t);
+  if(m){var s=+m[1]*60+ +m[2];return(+m[2]<60&&s>0)?s:NaN}
+  if(/^\d+(\.\d+)?$/.test(t)){var v=parseFloat(t)*60;return v>0?v:NaN}return NaN}
+function num(t){t=String(t==null?"":t).trim();if(t==="")return null;var v=parseFloat(t);return isFinite(v)?v:NaN}
+function e1rm(w,r,rpe){return w*(1+(r+(10-rpe))/30)}
+function slotOf(pos){return SLOTS[pos%6]} function wkOf(pos){return Math.floor(pos/6)}
+function isRun(s){return s.charAt(0)==="R"}
+function label(pos){var s=slotOf(pos);return isRun(s)?RUNNAME[s]:"Strength "+s}
+function setsFor(ex,wk,slot){if(ex.leg&&wk===7&&slot==="B")return 0;if(ex.leg&&wk<2)return Math.min(ex.sets,2);return ex.sets}
+function repText(ex){return (ex.lo===ex.hi?ex.lo:ex.lo+"-"+ex.hi)+(ex.time?" sec":"")+(ex.side?" per side":"")}
+
+/* ---------- saving ---------- */
+function saveLocal(){try{localStorage.setItem("p5k",JSON.stringify(state));storeOk=true}catch(e){storeOk=false}}
+function loadLocal(){try{var s=JSON.parse(localStorage.getItem("p5k")||"null");if(s&&s.v===1&&Array.isArray(s.done))state=s}catch(e){storeOk=false}
+  if(!state.draft||typeof state.draft!=="object")state.draft={pos:state.pos,v:{}}}
+function save(){state.t=Date.now();saveLocal();status()}
+function status(){$("status").textContent=storeOk?"Saved in this browser.":"This browser is blocking storage. Entries are lost when the page closes."}
+
+/* ---------- lookups ---------- */
+function lastSets(name){for(var i=state.done.length-1;i>=0;i--){var d=state.done[i];if(d.sets&&d.sets[name])return{date:d.date,sets:d.sets[name]}}return null}
+function lastPace(){for(var i=state.done.length-1;i>=0;i--){if(state.done[i].pace)return state.done[i]}return null}
+function fmtSet(s,ex){var w=s[0];return (w!=null&&w>0?w+" x ":"")+s[1]+(ex&&ex.time?" sec":"")+" @"+s[2]}
+function suggest(ex,sets){var top=true,low=false,sum=0;
+  sets.forEach(function(s){if(s[1]<ex.hi)top=false;if(s[1]<ex.lo)low=true;sum+=s[2]});var avg=sum/sets.length;
+  if(top&&avg<=8)return ex.time?"Add 5 to 10 seconds per hold.":"Add the smallest weight increment.";
+  if(avg>=9.5||low)return ex.time?"Shorten the holds slightly.":"That was too heavy. Drop the weight slightly.";
+  return ex.time?"Same holds. Aim for a few more seconds.":"Same weight. Aim for one more rep per set."}
+
+/* ---------- today ---------- */
+function draft(){if(state.draft.pos!==state.pos)state.draft={pos:state.pos,v:{}};return state.draft.v}
+function dv(id){var v=draft()[id];return v==null?"":v}
+function viewToday(){
+  var h="";
+  if(justDone){var d=justDone;h+="<p><b>Recorded:</b> Week "+(d.wk+1)+", "+esc(label(d.pos))+(d.skipped?" (skipped)":"")+".</p>";
+    h+="<p>"+(state.pos<TOTAL?"Next time you open this page: <b>"+esc(label(state.pos))+"</b>.":"That was the last workout.")+"</p>";
+    h+='<p><button id="shownext">Show next workout</button> <button id="undo">Undo</button></p>';return h}
+  if(state.pos>=TOTAL){return "<h1>Program complete</h1><p>All 8 weeks are done. See your progress under <a href=\"#charts\">Charts</a>.</p>"}
+  var pos=state.pos,wk=wkOf(pos),slot=slotOf(pos);
+  h+="<h1>"+esc(label(pos))+"</h1><p class=\"note\">Week "+(wk+1)+" of 8, workout "+(pos%6+1)+" of 6</p><hr>";
+  if(isRun(slot)){
+    var ri={R1:0,R2:1,R3:2}[slot];
+    h+="<p>Walk 5 min to warm up.</p><p class=\"big\"><b>"+esc(RUNS[wk][ri])+"</b></p><p>Walk 5 min to cool down.</p>";
+    h+="<p>Easy effort, RPE 4-5. You should be able to talk in full sentences.</p>";
+    var lp=lastPace();if(lp)h+="<p class=\"note\">Last run pace: "+fmtPace(lp.pace)+" per mile ("+esc(lp.date)+")</p>";
+    h+='<hr><p><label for="pace">Average mile pace (min:sec), optional:</label> <input type="text" id="pace" data-f="1" inputmode="text" placeholder="11:45" value="'+esc(dv("pace"))+'"></p>';
+    h+='<p id="perr" class="err"></p>';
+    h+='<p><label><input type="checkbox" id="donebox"> Run done</label></p>';
+  }else{
+    h+="<p>Stop each set 2 to 3 reps short of failure (RPE 7-8). Rest 1 to 2 min between sets.</p>";
+    if(slot==="C")h+="<p>This session is optional.</p>";
+    EX[slot].forEach(function(ex,i){
+      var n=setsFor(ex,wk,slot);
+      if(!n){h+="<h3>"+esc(ex.n)+" <small>skip this week, 5K on Saturday</small></h3>";return}
+      h+="<h3>"+esc(ex.n)+" <small>"+n+" x "+esc(repText(ex))+(n<ex.sets?" (2 sets for the first two weeks)":"")+"</small></h3>";
+      var ls=lastSets(ex.n);
+      if(ls)h+="<p class=\"note\">Last time ("+esc(ls.date)+"): "+ls.sets.map(function(s){return esc(fmtSet(s,ex))}).join(", ")+"<br><b>"+esc(suggest(ex,ls.sets))+"</b></p>";
+      h+='<table class="b"><tr><th>Set</th><th>Weight</th><th>'+(ex.time?"Sec":"Reps")+"</th><th>RPE</th></tr>";
+      for(var s=0;s<n;s++){var k="x"+i+"s"+s;
+        h+="<tr><td>"+(s+1)+"</td>"+["w","r","e"].map(function(f){var id=k+f;
+          return '<td><input type="number" inputmode="decimal" step="any" min="0" id="'+id+'" data-f="1" aria-label="'+esc(ex.n)+" set "+(s+1)+" "+{w:"weight",r:(ex.time?"seconds":"reps"),e:"RPE"}[f]+'"'+(f==="w"&&ex.bw?' placeholder="bw"':"")+' value="'+esc(dv(id))+'"></td>'}).join("")+"</tr>"}
+      h+="</table>";
+    });
+    h+='<hr><p><label><input type="checkbox" id="donebox"> All sets entered, session done</label></p><p id="perr" class="note"></p>';
+  }
+  h+='<p class="note"><a href="#today" id="skip">Skip this workout</a></p>';
+  return h}
+function strengthEntry(){var pos=state.pos,wk=wkOf(pos),slot=slotOf(pos),v=draft(),out={},ok=true;
+  EX[slot].forEach(function(ex,i){var n=setsFor(ex,wk,slot);if(!n)return;var rows=[];
+    for(var s=0;s<n;s++){var k="x"+i+"s"+s,w=num(v[k+"w"]),r=num(v[k+"r"]),e=num(v[k+"e"]);
+      if(w===null&&!ex.bw)ok=false;if(w!==null&&(isNaN(w)||w<0))ok=false;
+      if(r===null||isNaN(r)||r<=0)ok=false;if(e===null||isNaN(e)||e<1||e>10)ok=false;
+      rows.push([w,r,e])}
+    out[ex.n]=rows});
+  return ok?out:null}
+function refreshGate(){var b=$("donebox");if(!b||isRun(slotOf(state.pos)))return;var ok=!!strengthEntry();b.disabled=!ok;
+  $("perr").textContent=ok?"":"Fill in every set to enable the checkbox. RPE is 1 to 10; weight can stay blank where it says bw."}
+function complete(extra){var pos=state.pos,e={pos:pos,wk:wkOf(pos),slot:slotOf(pos),date:today()};
+  for(var k in extra)e[k]=extra[k];state.done.push(e);state.pos=pos+1;state.draft={pos:state.pos,v:{}};justDone=e;save();render()}
+function undo(){var e=state.done.pop();if(e){state.pos=e.pos;state.draft={pos:e.pos,v:{}}}justDone=null;save();render()}
+
+/* ---------- other tabs ---------- */
+function viewSchedule(){var cw=Math.min(wkOf(state.pos),7),h="<h1>Schedule</h1><p>Order each week: Run 1, Strength A, Run 2, Strength B, Run 3, optional Strength C. Add a 5 min walk before and after every run.</p>";
+  h+='<div class="scroll"><table class="b"><tr><th>Wk</th><th>Run 1</th><th>Run 2</th><th>Run 3</th></tr>';
+  RUNS.forEach(function(r,i){var o=i===cw?"<b>":"",c=i===cw?"</b>":"";h+="<tr><td>"+o+(i+1)+c+"</td>"+r.map(function(x){return"<td>"+o+esc(x)+c+"</td>"}).join("")+"</tr>"});
+  h+="</table></div>";
+  ["A","B","C"].forEach(function(s){h+="<h2>Strength "+s+(s==="C"?" (optional)":"")+"</h2><ul>"+EX[s].map(function(ex){return"<li>"+esc(ex.n)+", "+ex.sets+" x "+esc(repText(ex))+"</li>"}).join("")+"</ul>"});
+  h+="<p class=\"note\">Leg exercises are 2 sets in weeks 1 and 2, and are skipped in Strength B of week 8.</p>";return h}
+function viewLog(){var h="<h1>Log</h1>";if(!state.done.length)return h+"<p>Nothing logged yet. Each workout you check off on the Today page appears here.</p>";
+  h+='<div class="scroll"><table class="b"><tr><th>Date</th><th>Wk</th><th>Workout</th><th>Details</th></tr>';
+  for(var i=state.done.length-1;i>=0;i--){var d=state.done[i],det="";
+    if(d.skipped)det="skipped";else if(d.sets){var parts=[];for(var n in d.sets){parts.push(esc(n)+": "+d.sets[n].map(function(s){return esc(fmtSet(s,findEx(n)))}).join(", "))}det=parts.join("<br>")}
+    else det=d.pace?fmtPace(d.pace)+" per mile":"done";
+    h+="<tr><td>"+esc(d.date)+"</td><td>"+(d.wk+1)+"</td><td>"+esc(label(d.pos))+"</td><td>"+det+"</td></tr>"}
+  return h+"</table></div>"}
+function findEx(n){var f=null;["A","B","C"].forEach(function(s){EX[s].forEach(function(x){if(x.n===n)f=x})});return f}
+function series(){var out={},order=[];state.done.forEach(function(d){if(!d.sets)return;for(var n in d.sets){var best=0;
+    d.sets[n].forEach(function(s){if(s[0]>0){var v=e1rm(s[0],s[1],s[2]);if(v>best)best=v}});
+    if(best>0){if(!out[n]){out[n]=[];order.push(n)}out[n].push({d:d.date,v:best})}}});
+  return{map:out,order:order}}
+function chart(pts,fmt){var W=320,H=150,L=46,R=12,T=10,B=24,xs=pts.map(function(p){return Date.parse(p.d+"T12:00:00")});
+  var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),vs=pts.map(function(p){return p.v}),lo=Math.min.apply(null,vs),hi=Math.max.apply(null,vs);
+  if(hi===lo){hi=lo+1;lo=lo-1}var pad=(hi-lo)*0.1;lo-=pad;hi+=pad;
+  function X(t){return x1===x0?(L+(W-R))/2:L+(t-x0)/(x1-x0)*(W-L-R)}function Y(v){return T+(hi-v)/(hi-lo)*(H-T-B)}
+  var s='<svg viewBox="0 0 '+W+" "+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="line chart">';
+  s+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="var(--bg)"/>';
+  s+='<line x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'" stroke="var(--fg)"/><line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'" stroke="var(--fg)"/>';
+  [lo+pad,(lo+hi)/2,hi-pad].forEach(function(v){var y=Y(v);s+='<line x1="'+(L-3)+'" y1="'+y+'" x2="'+L+'" y2="'+y+'" stroke="var(--fg)"/><text x="'+(L-5)+'" y="'+(y+4)+'" text-anchor="end">'+esc(fmt(v))+"</text>"});
+  s+='<polyline fill="none" stroke="var(--fg)" stroke-width="1.5" points="'+pts.map(function(p,i){return X(xs[i]).toFixed(1)+","+Y(p.v).toFixed(1)}).join(" ")+'"/>';
+  pts.forEach(function(p,i){s+='<circle cx="'+X(xs[i]).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2.5" fill="var(--fg)"><title>'+esc(p.d+": "+fmt(p.v))+"</title></circle>"});
+  s+='<text x="'+L+'" y="'+(H-8)+'">'+esc(pts[0].d.slice(5))+"</text>";
+  if(x1!==x0)s+='<text x="'+(W-R)+'" y="'+(H-8)+'" text-anchor="end">'+esc(pts[pts.length-1].d.slice(5))+"</text>";
+  return s+"</svg>"}
+function viewCharts(){var h="<h1>Charts</h1>",pace=state.done.filter(function(d){return d.pace}).map(function(d){return{d:d.date,v:d.pace}}),se=series();
+  if(!pace.length&&!se.order.length)return h+"<p>No data yet. A chart appears for mile pace after your first run with a pace entered, and for each exercise after your first strength session.</p>";
+  if(pace.length){h+="<h2>Mile pace (min:sec, lower is faster)</h2>"+chart(pace,fmtPace)}
+  se.order.forEach(function(n){var p=se.map[n];h+="<h2>"+esc(n)+": estimated 1RM</h2>"+chart(p,function(v){return String(Math.round(v))})+'<p class="note">Latest: '+Math.round(p[p.length-1].v)+"</p>"});
+  if(se.order.length)h+="<hr><p class=\"note\">Estimated 1RM = weight x (1 + (reps + reps in reserve) / 30), where reps in reserve = 10 minus RPE. Each point is the best set of that session. Exercises logged without a weight have no chart.</p>";
+  return h}
+function csv(){var rows=[["date","week","workout","exercise","set","weight","reps_or_sec","rpe","est_1rm","mile_pace_sec","mile_pace"]];
+  state.done.forEach(function(d){var w=label(d.pos);
+    if(d.skipped)rows.push([d.date,d.wk+1,w+" (skipped)","","","","","","","",""]);
+    else if(d.sets){for(var n in d.sets)d.sets[n].forEach(function(s,i){rows.push([d.date,d.wk+1,w,n,i+1,s[0]==null?"":s[0],s[1],s[2],s[0]>0?Math.round(e1rm(s[0],s[1],s[2])*10)/10:"","",""])})}
+    else rows.push([d.date,d.wk+1,w,"","","","","","",d.pace?Math.round(d.pace):"",d.pace?fmtPace(d.pace):""])});
+  return rows.map(function(r){return r.map(function(c){c=String(c);return/[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\n")+"\n"}
+function viewData(){var wk=Math.min(wkOf(state.pos),7),h="<h1>Data</h1>";
+  h+="<p>"+(storeOk?"Your log is stored in this browser on this device. Clearing the browser's site data erases it, so save a backup file every week or two.":"This browser is blocking storage. Entries are lost when the page closes.")+"</p>";
+  h+="<p>"+state.done.length+" workouts logged.</p>";
+  if(flash)h+="<p><b>"+esc(flash)+"</b></p>";
+  h+="<h2>Export for charting</h2>";
+  h+='<p><button id="export">Save log as CSV file</button> <button id="showcsv">Show CSV as text</button></p>';
+  if(csvShown)h+='<p><textarea id="csvbox" readonly aria-label="CSV log">'+esc(csv())+"</textarea></p>";
+  h+="<h2>Backup and restore</h2>";
+  h+='<p><button id="backup">Save backup file</button> <button id="showbak">Show backup as text</button></p>';
+  if(bakShown)h+='<p><textarea id="bakbox" readonly aria-label="Backup text">'+esc(JSON.stringify(state))+"</textarea></p>";
+  h+='<p><label for="restorebox">To restore, paste the contents of a backup file here:</label></p><p><textarea id="restorebox" style="height:5em"></textarea></p><p><button id="restore">Restore from backup</button></p>';
+  h+="<h2>Adjust position</h2><p>The log is kept when you move.</p>";
+  h+='<p><button id="undo2"'+(state.done.length?"":" disabled")+'>Undo last entry</button> <button id="rewk">Restart week '+(wk+1)+"</button>"+(wk>0?' <button id="prevwk">Go back to week '+wk+"</button>":"")+"</p>";
+  h+="<h2>Erase</h2>"+(eraseArmed?'<p>This deletes every logged workout. <button id="erase2">Yes, erase everything</button> <button id="erasecancel">Cancel</button></p>':'<p><button id="erase">Erase all data...</button></p>');
+  return h}
+
+/* ---------- render and events ---------- */
+function tab(){var t=(location.hash||"#today").slice(1);return{today:1,schedule:1,charts:1,log:1,data:1}[t]?t:"today"}
+function render(){var t=tab(),links=document.querySelectorAll("#nav a");for(var i=0;i<links.length;i++)links[i].className=links[i].getAttribute("data-tab")===t?"on":"";
+  $("main").innerHTML={today:viewToday,schedule:viewSchedule,charts:viewCharts,log:viewLog,data:viewData}[t]();
+  if(t==="today")refreshGate();status()}
+$("main").addEventListener("input",function(ev){var el=ev.target;if(!el.getAttribute||!el.getAttribute("data-f"))return;
+  draft()[el.id]=el.value;save();refreshGate()});
+$("main").addEventListener("change",function(ev){var el=ev.target;if(el.id!=="donebox"||!el.checked)return;
+  if(isRun(slotOf(state.pos))){var p=parsePace(dv("pace"));if(p!==null&&isNaN(p)){el.checked=false;$("perr").textContent="Enter pace as min:sec, for example 11:45, or leave it blank.";return}
+    complete(p?{pace:p}:{})}
+  else{var s=strengthEntry();if(!s){el.checked=false;refreshGate();return}complete({sets:s})}});
+$("main").addEventListener("click",function(ev){var id=ev.target.id;if(!id)return;
+  if(id==="shownext"){justDone=null;render()}
+  else if(id==="undo"||id==="undo2"){undo()}
+  else if(id==="skip"){ev.preventDefault();complete({skipped:true})}
+  else if(id==="rewk"||id==="prevwk"){var wk=Math.min(wkOf(state.pos),7);state.pos=(id==="rewk"?wk:wk-1)*6;state.draft={pos:state.pos,v:{}};justDone=null;save();flash="Moved to week "+(wkOf(state.pos)+1)+", "+label(state.pos)+".";render()}
+  else if(id==="showcsv"){csvShown=!csvShown;render()}
+  else if(id==="export"){saveFile("path-to-5k-log.csv",csv(),"text/csv",function(){csvShown=true})}
+  else if(id==="backup"){saveFile("path-to-5k-backup.json",JSON.stringify(state),"application/json",function(){bakShown=true})}
+  else if(id==="showbak"){bakShown=!bakShown;render()}
+  else if(id==="restore"){var r=null;try{r=JSON.parse($("restorebox").value)}catch(e){}
+    if(r&&r.v===1&&Array.isArray(r.done)&&typeof r.pos==="number"){state=r;if(!state.draft||typeof state.draft!=="object")state.draft={pos:state.pos,v:{}};justDone=null;save();flash="Backup restored: "+state.done.length+" workouts.";render()}
+    else{flash="That is not a valid backup. Paste the full contents of a backup file.";render()}}
+  else if(id==="erase"){eraseArmed=true;render()}
+  else if(id==="erasecancel"){eraseArmed=false;render()}
+  else if(id==="erase2"){eraseArmed=false;state={v:1,pos:0,done:[],draft:{pos:0,v:{}}};justDone=null;save();flash="All data erased.";render()}});
+function saveFile(name,text,mime,showText){
+  function fallback(){showText();flash="Could not save a file here. Copy the text below instead.";render()}
+  var host=window["cl"+"aude"];
+  if(host&&host.use){host.use("downloads").then(function(dl){if(!dl)return fallback();
+      return dl.save({filename:name,data:text}).then(function(){flash="File saved.";render()},
+        function(e){if(e&&e.code==="declined"){flash="Save cancelled.";render()}else fallback()})}).catch(fallback);return}
+  try{var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();flash="File saved.";render()}catch(e){fallback()}}
+window.addEventListener("hashchange",function(){flash="";eraseArmed=false;render()});
+
+loadLocal();render();
+</script>
+</body>
+</html>
